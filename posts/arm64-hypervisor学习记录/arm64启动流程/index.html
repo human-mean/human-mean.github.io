@@ -126,7 +126,7 @@ _start:
 /*
 传递栈顶地址给sp
  */
-</code></pre><h4 id=为什么不能直接写mov-x0-_stack_top>为什么不能直接写<code>mov x0, _stack_top</code>?<a hidden class=anchor aria-hidden=true href=#为什么不能直接写mov-x0-_stack_top>#</a></h4><blockquote><p>查阅数据手册可以知道，MOV指令立即数最大就是16位，无法通过一次指令表示<code>0x40010000</code>这种任意地址</p></blockquote><p><img loading=lazy src=static/images/posts/mov.png></p></div><footer class=post-footer><ul class=post-tags></ul></footer></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
+</code></pre><h4 id=为什么不能直接写mov-x0-_stack_top>为什么不能直接写<code>mov x0, _stack_top</code>?<a hidden class=anchor aria-hidden=true href=#为什么不能直接写mov-x0-_stack_top>#</a></h4><blockquote><p>查阅数据手册可以知道，MOV指令立即数最大就是16位，无法通过一次指令表示<code>0x40010000</code>这种任意地址</p></blockquote><p><img loading=lazy src=mov.png></p></div><footer class=post-footer><ul class=post-tags></ul></footer></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
 <span>Powered by
 <a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
 <a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg>
