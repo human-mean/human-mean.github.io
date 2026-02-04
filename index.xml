@@ -44,7 +44,7 @@ bl main
 */
 &lt;/code&gt;&lt;/pre&gt;&lt;h4 id="为什么不能直接写mov-x0-_stack_top"&gt;为什么不能直接写&lt;code&gt;mov x0, _stack_top&lt;/code&gt;?&lt;/h4&gt;
 &lt;blockquote&gt;
-&lt;p&gt;查阅数据手册可以知道，MOV指令立即数最大就是16位，无法通过一次指令表示&lt;code&gt;0x40010000&lt;/code&gt;这种任意地址&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
+&lt;p&gt;查阅数据手册可以知道，MOV指令立即数最大就是16位，无法通过一次指令表示&lt;code&gt;0x40010000&lt;/code&gt;这种任意地址&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
 &lt;h2 id="1-概述"&gt;1. 概述&lt;/h2&gt;
 &lt;p&gt;NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 &lt;strong&gt;Tickless 模式（动态时钟）&lt;/strong&gt;，以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。&lt;/p&gt;
 &lt;p&gt;系统的核心不仅仅是简单的链表管理，而是采用了**红黑树（Red-Black Tree）**作为定时器容器，显著提升了在大量定时器并发场景下的插入与查找效率。&lt;/p&gt;

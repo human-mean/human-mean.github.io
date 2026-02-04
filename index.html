@@ -16,7 +16,7 @@ struct rb_node node：红黑树节点，用于将定时器挂载到内核的全�
 查找最优：获取最早到期的定时器（即树的最左节点 rb_first）的时间复杂度极低。 操作稳定：插入和删除定时器的时间复杂度为 ，避免了传统双向链表在长列表下的遍历开销。 3. 运行模式详解 系统通过宏 ND_CFG_TICKLESS 进行编译期配置，决定底层时钟驱动机制。
 3.1 Tick 模式 当 ND_CFG_TICKLESS 为 0 时，系统工作在固定节拍模式。
 时基驱动：依赖硬件的周期性中断（如 SysTick）。在 arch/arm/m33/port.c 中，Systick 被配置为以 ND_TICKS_PER_SEC 的频率产生中断。 处理流程： 每次 Systick 中断触发 isr_systick，进而调用 nd_timer_process()。内核通过 nd_hw_tick_get_current() 获取当前 Tick 计数，并检查红黑树最左节点是否到期。 特点：实现简单，但存在空闲时的无效中断开销。 3.2 Tickless 模式 当 ND_CFG_TICKLESS 为 1 时，系统启用高精度动态定时模式。
-...</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span></footer><a class=entry-link aria-label="post link to NerdRTOS 定时器设计文档" href=https://human-mean.github.io/posts/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/></a></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
+...</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span></footer><a class=entry-link aria-label="post link to NerdRTOS 定时器设计文档" href=https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/></a></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
 <span>Powered by
 <a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
 <a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg>
