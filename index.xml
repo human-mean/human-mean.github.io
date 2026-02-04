@@ -1,4 +1,50 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>嵌入式学习笔记</title><link>https://human-mean.github.io/</link><description>Recent content on 嵌入式学习笔记</description><generator>Hugo -- 0.155.2</generator><language>zh-cn</language><lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://human-mean.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>嵌入式学习笔记</title><link>https://human-mean.github.io/</link><description>Recent content on 嵌入式学习笔记</description><generator>Hugo -- 0.155.2</generator><language>zh-cn</language><lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://human-mean.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</guid><description>&lt;h2 id="starts-启动代码"&gt;start.S 启动代码&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;start.S是cpu上电运行的第一段代码,负责初始化硬件环境并且为程序运行做准备。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h4 id="设置栈指针"&gt;设置栈指针&lt;/h4&gt;
+&lt;p&gt;c语言的函数调用栈来保存返回地址、局部变量和函数参数，进入c代码之前必须为栈指针（sp）设置一个有效值。栈从高地址向低地址生长，所以栈指针初始化为RAM的高地址边界。&lt;/p&gt;
+&lt;h4 id="清空-bss-段"&gt;清空 BSS 段&lt;/h4&gt;
+&lt;p&gt;BSS用于存储为初始化的全局和局部变量，如果不手动将BSS段清零，上电后的RAM内容会是不确定的随机值。&lt;/p&gt;
+&lt;h4 id="bss-段的优化意义"&gt;BSS 段的优化意义&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;减小二进制文件大小&lt;/strong&gt;：未初始化的变量不占用文件空间&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;加快加载速度&lt;/strong&gt;：只需记录大小，运行时清零&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;统一初始化&lt;/strong&gt;：保证所有未初始化变量的初始值为零&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id="bss段清零不能用memset"&gt;BSS段清零不能用&lt;code&gt;memset&lt;/code&gt;&lt;/h4&gt;
+&lt;p&gt;&lt;code&gt;memset&lt;/code&gt;是c库函数，其实现本身可能使用为初始化的全局变量，或需要已经初始化的栈，BSS清零前调用&lt;code&gt;memset&lt;/code&gt;会导致循环依赖。&lt;/p&gt;
+&lt;h4 id="跳转到-main"&gt;跳转到 main&lt;/h4&gt;
+&lt;p&gt;底层硬件初始化完成后将控制权交给c程序入口点&lt;code&gt;main&lt;/code&gt;。&lt;/p&gt;
+&lt;h2 id="写代码"&gt;写代码&lt;/h2&gt;
+&lt;h4 id="链接脚本"&gt;链接脚本&lt;/h4&gt;
+&lt;p&gt;链接脚本用于告诉连接器代码和数据放在内寸的哪个位置。&lt;/p&gt;
+&lt;p&gt;下面是最简单的链接脚本：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ENTRY(_start) //ENTRY指定入口符号，也就是告诉链接脚本从哪里开始
+SECTIONS{
+. = 0x40000000;
+.text : {
+src/start.o(.text)
+*(.text)
+}
+. = ALIGN(16); //ARM64要求栈指针必须16字节对齐，在定义栈或者数据段之前要对齐八字节。
+_stack_top = . + 0x10000;
+}
+/*
+‘.’ 是位置计数器，. = `0x40000000` 意思是从 0x40000000 开始放东西。
+*/
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id="starts"&gt;start.S&lt;/h4&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;.global _start
+_start:
+ldr x0, =_stack_top
+mov sp, x0
+bl main
+/*
+传递栈顶地址给sp
+*/
+&lt;/code&gt;&lt;/pre&gt;&lt;h4 id="为什么不能直接写mov-x0-_stack_top"&gt;为什么不能直接写&lt;code&gt;mov x0, _stack_top&lt;/code&gt;?&lt;/h4&gt;
+&lt;blockquote&gt;
+&lt;p&gt;查阅数据手册可以知道，MOV指令立即数最大就是16位，无法通过一次指令表示&lt;code&gt;0x40010000&lt;/code&gt;这种任意地址&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
 &lt;h2 id="1-概述"&gt;1. 概述&lt;/h2&gt;
 &lt;p&gt;NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 &lt;strong&gt;Tickless 模式（动态时钟）&lt;/strong&gt;，以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。&lt;/p&gt;
 &lt;p&gt;系统的核心不仅仅是简单的链表管理，而是采用了**红黑树（Red-Black Tree）**作为定时器容器，显著提升了在大量定时器并发场景下的插入与查找效率。&lt;/p&gt;
