@@ -1,1 +1,33 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>NerdRTOS 学习笔记</title><link>https://human-mean.github.io/</link><description>Recent content on NerdRTOS 学习笔记</description><generator>Hugo -- 0.155.2</generator><language>zh-cn</language><atom:link href="https://human-mean.github.io/index.xml" rel="self" type="application/rss+xml"/></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>NerdRTOS 学习笔记</title><link>https://human-mean.github.io/</link><description>Recent content on NerdRTOS 学习笔记</description><generator>Hugo -- 0.155.2</generator><language>zh-cn</language><lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://human-mean.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
+&lt;h2 id="1-概述"&gt;1. 概述&lt;/h2&gt;
+&lt;p&gt;NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 &lt;strong&gt;Tickless 模式（动态时钟）&lt;/strong&gt;，以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。&lt;/p&gt;
+&lt;p&gt;系统的核心不仅仅是简单的链表管理，而是采用了**红黑树（Red-Black Tree）**作为定时器容器，显著提升了在大量定时器并发场景下的插入与查找效率。&lt;/p&gt;
+&lt;h2 id="2-核心数据结构"&gt;2. 核心数据结构&lt;/h2&gt;
+&lt;p&gt;定时器子系统的设计围绕 &lt;code&gt;nd_timer_t&lt;/code&gt; 结构体展开，采用了非侵入式的节点设计，直接嵌入内核的通用数据结构。&lt;/p&gt;
+&lt;h3 id="21-定时器控制块-nd_timer_t"&gt;2.1 定时器控制块 (&lt;code&gt;nd_timer_t&lt;/code&gt;)&lt;/h3&gt;
+&lt;p&gt;定义于 &lt;code&gt;include/nd_def.h&lt;/code&gt;，该结构体包含以下关键成员：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;struct rb_node node&lt;/code&gt;&lt;/strong&gt;：红黑树节点，用于将定时器挂载到内核的全局定时器树上。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;nd_uint64_t expire_time&lt;/code&gt;&lt;/strong&gt;：绝对到期时间。内核统一将用户设置的相对超时时间转换为系统启动以来的绝对时间戳（Ticks 或微秒），以此作为红黑树排序的键值（Key）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;nd_timer_type_t type&lt;/code&gt;&lt;/strong&gt;：定时器类型，支持单次触发（&lt;code&gt;ND_TIMER_TYPE_ONE_SHOT&lt;/code&gt;）和周期触发（&lt;code&gt;ND_TIMER_TYPE_PERIODIC&lt;/code&gt;）。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;回调机制&lt;/strong&gt;：包含函数指针 &lt;code&gt;callback&lt;/code&gt; 和参数 &lt;code&gt;arg&lt;/code&gt;，在定时器到期时执行。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="22-全局容器-rbtree_root"&gt;2.2 全局容器 (&lt;code&gt;rbtree_root&lt;/code&gt;)&lt;/h3&gt;
+&lt;p&gt;内核维护一个静态全局变量 &lt;code&gt;rbtree_root&lt;/code&gt;（定义于 &lt;code&gt;kernel/nd_timer.c&lt;/code&gt;）。所有活动的定时器都驻留在这棵红黑树中。
+使用红黑树的优势在于：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;查找最优&lt;/strong&gt;：获取最早到期的定时器（即树的最左节点 &lt;code&gt;rb_first&lt;/code&gt;）的时间复杂度极低。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;操作稳定&lt;/strong&gt;：插入和删除定时器的时间复杂度为 ，避免了传统双向链表在长列表下的遍历开销。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="3-运行模式详解"&gt;3. 运行模式详解&lt;/h2&gt;
+&lt;p&gt;系统通过宏 &lt;code&gt;ND_CFG_TICKLESS&lt;/code&gt; 进行编译期配置，决定底层时钟驱动机制。&lt;/p&gt;
+&lt;h3 id="31-tick-模式"&gt;3.1 Tick 模式&lt;/h3&gt;
+&lt;p&gt;当 &lt;code&gt;ND_CFG_TICKLESS&lt;/code&gt; 为 0 时，系统工作在固定节拍模式。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;时基驱动&lt;/strong&gt;：依赖硬件的周期性中断（如 SysTick）。在 &lt;code&gt;arch/arm/m33/port.c&lt;/code&gt; 中，Systick 被配置为以 &lt;code&gt;ND_TICKS_PER_SEC&lt;/code&gt; 的频率产生中断。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;处理流程&lt;/strong&gt;：
+每次 Systick 中断触发 &lt;code&gt;isr_systick&lt;/code&gt;，进而调用 &lt;code&gt;nd_timer_process()&lt;/code&gt;。内核通过 &lt;code&gt;nd_hw_tick_get_current()&lt;/code&gt; 获取当前 Tick 计数，并检查红黑树最左节点是否到期。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;特点&lt;/strong&gt;：实现简单，但存在空闲时的无效中断开销。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="32-tickless-模式"&gt;3.2 Tickless 模式&lt;/h3&gt;
+&lt;p&gt;当 &lt;code&gt;ND_CFG_TICKLESS&lt;/code&gt; 为 1 时，系统启用高精度动态定时模式。&lt;/p&gt;</description></item><item><title/><link>https://human-mean.github.io/readme/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/readme/</guid><description>&lt;p&gt;#Init&lt;/p&gt;</description></item></channel></rss>
