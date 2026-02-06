@@ -1,0 +1,131 @@
+<!doctype html><html lang=en dir=auto data-theme=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>哈希表 | 嵌入式学习笔记</title><meta name=keywords content><meta name=description content="哈希表是什么
+哈希表通过建立键 key 与值 value 之间的映射，实现高效的元素查询，只需要输入一个key就能获得对应值的value。　
+
+哈希表与链表、数组的时间复杂度比较：
+
+
+  
+      
+          
+          数组
+          链表
+          哈希表
+      
+  
+  
+      
+          查找元素
+          O(n)
+          O(n)
+          O(1)
+      
+      
+          添加元素
+          O(1)
+          O(1)
+          O(1)
+      
+      
+          删除元素
+          O(n)
+          O(n)
+          O(1)
+      
+  
+
+哈希函数
+一个把数据转换成数组下标的规则，只有两个要求：
+
+同样的输入，永远得到同样的输出
+输出范围在 0 到 size-1 之间
+
+输入一个key，我们可以通过哈希函数获得key值对应键值的存储位置。
+哈希函数的计算步骤：
+
+1.通过一个哈希算法hash()得到哈希值。
+2.将哈希值的数组长度capacity取模，从而获取对应的index
+
+index = hash(key) % capacity
+
+因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 0 到 capacity-1 的范围内。
+
+哈希冲突与扩容
+哈希函数的作用是将所有 key 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此理论上一定存在多个输入对应相同输出的情况。
+比如：
+7 %  10  =  7
+17 % 10  =  7
+哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突"><meta name=author content><link rel=canonical href=https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/><link crossorigin=anonymous href=/assets/css/stylesheet.css rel="preload stylesheet" as=style><link rel=icon href=https://human-mean.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://human-mean.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://human-mean.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://human-mean.github.io/apple-touch-icon.png><link rel=mask-icon href=https://human-mean.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate hreflang=en href=https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme:rgb(29, 30, 32);--entry:rgb(46, 46, 51);--primary:rgb(218, 218, 219);--secondary:rgb(155, 156, 157);--tertiary:rgb(65, 66, 68);--content:rgb(196, 196, 197);--code-block-bg:rgb(46, 46, 51);--code-bg:rgb(55, 56, 62);--border:rgb(51, 51, 51);color-scheme:dark}.list{background:var(--theme)}.toc{background:var(--entry)}}@media(prefers-color-scheme:light){.list::-webkit-scrollbar-thumb{border-color:var(--code-bg)}}</style></noscript><script>localStorage.getItem("pref-theme")==="dark"?document.querySelector("html").dataset.theme="dark":localStorage.getItem("pref-theme")==="light"?document.querySelector("html").dataset.theme="light":window.matchMedia("(prefers-color-scheme: dark)").matches?document.querySelector("html").dataset.theme="dark":document.querySelector("html").dataset.theme="light"</script><meta property="og:url" content="https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/"><meta property="og:site_name" content="嵌入式学习笔记"><meta property="og:title" content="哈希表"><meta property="og:description" content="哈希表是什么 哈希表通过建立键 key 与值 value 之间的映射，实现高效的元素查询，只需要输入一个key就能获得对应值的value。　哈希表与链表、数组的时间复杂度比较：
+数组 链表 哈希表 查找元素 O(n) O(n) O(1) 添加元素 O(1) O(1) O(1) 删除元素 O(n) O(n) O(1) 哈希函数 一个把数据转换成数组下标的规则，只有两个要求：
+同样的输入，永远得到同样的输出 输出范围在 0 到 size-1 之间 输入一个key，我们可以通过哈希函数获得key值对应键值的存储位置。
+哈希函数的计算步骤：
+1.通过一个哈希算法hash()得到哈希值。 2.将哈希值的数组长度capacity取模，从而获取对应的index
+index = hash(key) % capacity
+因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 0 到 capacity-1 的范围内。
+哈希冲突与扩容 哈希函数的作用是将所有 key 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此理论上一定存在多个输入对应相同输出的情况。
+比如：
+7 % 10 = 7 17 % 10 = 7 哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突"><meta property="og:locale" content="zh-cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2026-02-03T00:00:00+00:00"><meta property="article:modified_time" content="2026-02-03T00:00:00+00:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="哈希表"><meta name=twitter:description content="哈希表是什么
+哈希表通过建立键 key 与值 value 之间的映射，实现高效的元素查询，只需要输入一个key就能获得对应值的value。　
+
+哈希表与链表、数组的时间复杂度比较：
+
+
+  
+      
+          
+          数组
+          链表
+          哈希表
+      
+  
+  
+      
+          查找元素
+          O(n)
+          O(n)
+          O(1)
+      
+      
+          添加元素
+          O(1)
+          O(1)
+          O(1)
+      
+      
+          删除元素
+          O(n)
+          O(n)
+          O(1)
+      
+  
+
+哈希函数
+一个把数据转换成数组下标的规则，只有两个要求：
+
+同样的输入，永远得到同样的输出
+输出范围在 0 到 size-1 之间
+
+输入一个key，我们可以通过哈希函数获得key值对应键值的存储位置。
+哈希函数的计算步骤：
+
+1.通过一个哈希算法hash()得到哈希值。
+2.将哈希值的数组长度capacity取模，从而获取对应的index
+
+index = hash(key) % capacity
+
+因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 0 到 capacity-1 的范围内。
+
+哈希冲突与扩容
+哈希函数的作用是将所有 key 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此理论上一定存在多个输入对应相同输出的情况。
+比如：
+7 %  10  =  7
+17 % 10  =  7
+哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://human-mean.github.io/posts/"},{"@type":"ListItem","position":2,"name":"哈希表","item":"https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"哈希表","name":"哈希表","description":"哈希表是什么 哈希表通过建立键 key 与值 value 之间的映射，实现高效的元素查询，只需要输入一个key就能获得对应值的value。　哈希表与链表、数组的时间复杂度比较：\n数组 链表 哈希表 查找元素 O(n) O(n) O(1) 添加元素 O(1) O(1) O(1) 删除元素 O(n) O(n) O(1) 哈希函数 一个把数据转换成数组下标的规则，只有两个要求：\n同样的输入，永远得到同样的输出 输出范围在 0 到 size-1 之间 输入一个key，我们可以通过哈希函数获得key值对应键值的存储位置。\n哈希函数的计算步骤：\n1.通过一个哈希算法hash()得到哈希值。 2.将哈希值的数组长度capacity取模，从而获取对应的index\nindex = hash(key) % capacity\n因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 0 到 capacity-1 的范围内。\n哈希冲突与扩容 哈希函数的作用是将所有 key 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此理论上一定存在多个输入对应相同输出的情况。\n比如：\n7 % 10 = 7 17 % 10 = 7 哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突\n","keywords":[],"articleBody":"哈希表是什么 哈希表通过建立键 key 与值 value 之间的映射，实现高效的元素查询，只需要输入一个key就能获得对应值的value。　哈希表与链表、数组的时间复杂度比较：\n数组 链表 哈希表 查找元素 O(n) O(n) O(1) 添加元素 O(1) O(1) O(1) 删除元素 O(n) O(n) O(1) 哈希函数 一个把数据转换成数组下标的规则，只有两个要求：\n同样的输入，永远得到同样的输出 输出范围在 0 到 size-1 之间 输入一个key，我们可以通过哈希函数获得key值对应键值的存储位置。\n哈希函数的计算步骤：\n1.通过一个哈希算法hash()得到哈希值。 2.将哈希值的数组长度capacity取模，从而获取对应的index\nindex = hash(key) % capacity\n因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 0 到 capacity-1 的范围内。\n哈希冲突与扩容 哈希函数的作用是将所有 key 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此理论上一定存在多个输入对应相同输出的情况。\n比如：\n7 % 10 = 7 17 % 10 = 7 哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突\n","wordCount":"60","inLanguage":"en","datePublished":"2026-02-03T00:00:00Z","dateModified":"2026-02-03T00:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/"},"publisher":{"@type":"Organization","name":"嵌入式学习笔记","logo":{"@type":"ImageObject","url":"https://human-mean.github.io/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=nav><div class=logo><a href=https://human-mean.github.io/ accesskey=h title="嵌入式学习笔记 (Alt + H)">嵌入式学习笔记</a><div class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
+<svg id="moon" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+<svg id="sun" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu></ul></nav></header><main class=main><div class=post-wrapper><article class=post-single><header class=post-header><h1 class="post-title entry-hint-parent">哈希表</h1><div class=post-meta><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></div></header><div class=post-content><h3 id=哈希表是什么>哈希表是什么<a hidden class=anchor aria-hidden=true href=#哈希表是什么>#</a></h3><p>哈希表通过建立键 <code>key</code> 与值 <code>value</code> 之间的映射，实现高效的元素查询，只需要输入一个<code>key</code>就能获得对应值的value。　</p><blockquote><p>哈希表与链表、数组的时间复杂度比较：</p></blockquote><table><thead><tr><th></th><th>数组</th><th>链表</th><th>哈希表</th></tr></thead><tbody><tr><td>查找元素</td><td>O(n)</td><td>O(n)</td><td>O(1)</td></tr><tr><td>添加元素</td><td>O(1)</td><td>O(1)</td><td>O(1)</td></tr><tr><td>删除元素</td><td>O(n)</td><td>O(n)</td><td>O(1)</td></tr></tbody></table><h3 id=哈希函数>哈希函数<a hidden class=anchor aria-hidden=true href=#哈希函数>#</a></h3><p>一个<strong>把数据转换成数组下标</strong>的规则，只有两个要求：</p><ol><li>同样的输入，永远得到同样的输出</li><li>输出范围在 <code>0</code> 到 <code>size-1</code> 之间</li></ol><p><strong>输入一个key，我们可以通过哈希函数获得key值对应键值的存储位置。</strong></p><p>哈希函数的计算步骤：</p><blockquote><p>1.通过一个哈希算法<code>hash()</code>得到哈希值。
+2.将哈希值的数组长度<code>capacity</code>取模，从而获取对应的<code>index</code></p></blockquote><p><code>index = hash(key) % capacity</code></p><p>因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 <code>0</code> 到 <code>capacity-1</code> 的范围内。</p><h3 id=哈希冲突与扩容>哈希冲突与扩容<a hidden class=anchor aria-hidden=true href=#哈希冲突与扩容>#</a></h3><p>哈希函数的作用是将所有 <code>key</code> 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此<strong>理论上一定存在多个输入对应相同输出的情况</strong>。</p><p>比如：</p><pre tabindex=0><code>7 %  10  =  7
+17 % 10  =  7
+</code></pre><p>哈希表容量越大，输出相同的可能性就越低，通过<em>扩容哈希表</em>可以减少<em>哈希冲突</em></p></div><footer class=post-footer><ul class=post-tags></ul></footer></article><aside class=toc-sidebar><div class=toc-inner><details open><summary>目录</summary><nav id=TableOfContents><ul><li><ul><li><a href=#哈希表是什么>哈希表是什么</a></li><li><a href=#哈希函数>哈希函数</a></li><li><a href=#哈希冲突与扩容>哈希冲突与扩容</a></li></ul></li></ul></nav></details></div></aside></div></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg>
+</a><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){document.body.scrollTop>800||document.documentElement.scrollTop>800?(mybutton.style.visibility="visible",mybutton.style.opacity="1"):(mybutton.style.visibility="hidden",mybutton.style.opacity="0")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script><script>document.querySelectorAll("pre > code").forEach(e=>{const n=e.parentNode.parentNode,t=document.createElement("button");t.classList.add("copy-code"),t.innerHTML="copy";function s(){t.innerHTML="copied!",setTimeout(()=>{t.innerHTML="copy"},2e3)}t.addEventListener("click",t=>{if("clipboard"in navigator){navigator.clipboard.writeText(e.textContent),s();return}const n=document.createRange();n.selectNodeContents(e);const o=window.getSelection();o.removeAllRanges(),o.addRange(n);try{document.execCommand("copy"),s()}catch{}o.removeRange(n)}),n.classList.contains("highlight")?n.appendChild(t):n.parentNode.firstChild==n||(e.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"?e.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(t):e.parentNode.appendChild(t))})</script></body></html>

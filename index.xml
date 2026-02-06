@@ -76,4 +76,60 @@ bl main
 &lt;li&gt;&lt;strong&gt;特点&lt;/strong&gt;：实现简单，但存在空闲时的无效中断开销。&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3 id="32-tickless-模式"&gt;3.2 Tickless 模式&lt;/h3&gt;
-&lt;p&gt;当 &lt;code&gt;ND_CFG_TICKLESS&lt;/code&gt; 为 1 时，系统启用高精度动态定时模式。&lt;/p&gt;</description></item><item><title/><link>https://human-mean.github.io/readme/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/readme/</guid><description>&lt;p&gt;#Init&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;当 &lt;code&gt;ND_CFG_TICKLESS&lt;/code&gt; 为 1 时，系统启用高精度动态定时模式。&lt;/p&gt;</description></item><item><title>哈希表</title><link>https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/</guid><description>&lt;h3 id="哈希表是什么"&gt;哈希表是什么&lt;/h3&gt;
+&lt;p&gt;哈希表通过建立键 &lt;code&gt;key&lt;/code&gt; 与值 &lt;code&gt;value&lt;/code&gt; 之间的映射，实现高效的元素查询，只需要输入一个&lt;code&gt;key&lt;/code&gt;就能获得对应值的value。　&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;哈希表与链表、数组的时间复杂度比较：&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;数组&lt;/th&gt;
+&lt;th&gt;链表&lt;/th&gt;
+&lt;th&gt;哈希表&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;查找元素&lt;/td&gt;
+&lt;td&gt;O(n)&lt;/td&gt;
+&lt;td&gt;O(n)&lt;/td&gt;
+&lt;td&gt;O(1)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;添加元素&lt;/td&gt;
+&lt;td&gt;O(1)&lt;/td&gt;
+&lt;td&gt;O(1)&lt;/td&gt;
+&lt;td&gt;O(1)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;删除元素&lt;/td&gt;
+&lt;td&gt;O(n)&lt;/td&gt;
+&lt;td&gt;O(n)&lt;/td&gt;
+&lt;td&gt;O(1)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id="哈希函数"&gt;哈希函数&lt;/h3&gt;
+&lt;p&gt;一个&lt;strong&gt;把数据转换成数组下标&lt;/strong&gt;的规则，只有两个要求：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;同样的输入，永远得到同样的输出&lt;/li&gt;
+&lt;li&gt;输出范围在 &lt;code&gt;0&lt;/code&gt; 到 &lt;code&gt;size-1&lt;/code&gt; 之间&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;输入一个key，我们可以通过哈希函数获得key值对应键值的存储位置。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;哈希函数的计算步骤：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;1.通过一个哈希算法&lt;code&gt;hash()&lt;/code&gt;得到哈希值。
+2.将哈希值的数组长度&lt;code&gt;capacity&lt;/code&gt;取模，从而获取对应的&lt;code&gt;index&lt;/code&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;code&gt;index = hash(key) % capacity&lt;/code&gt;&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;p&gt;因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 &lt;code&gt;0&lt;/code&gt; 到 &lt;code&gt;capacity-1&lt;/code&gt; 的范围内。&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h3 id="哈希冲突与扩容"&gt;哈希冲突与扩容&lt;/h3&gt;
+&lt;p&gt;哈希函数的作用是将所有 &lt;code&gt;key&lt;/code&gt; 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此&lt;strong&gt;理论上一定存在多个输入对应相同输出的情况&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;比如：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;7 % 10 = 7
+17 % 10 = 7
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;哈希表容量越大，输出相同的可能性就越低，通过&lt;em&gt;扩容哈希表&lt;/em&gt;可以减少&lt;em&gt;哈希冲突&lt;/em&gt;&lt;/p&gt;</description></item><item><title/><link>https://human-mean.github.io/readme/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/readme/</guid><description>&lt;p&gt;#Init&lt;/p&gt;</description></item></channel></rss>
