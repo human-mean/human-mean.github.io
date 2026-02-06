@@ -132,4 +132,59 @@ bl main
 &lt;p&gt;比如：&lt;/p&gt;
 &lt;pre tabindex="0"&gt;&lt;code&gt;7 % 10 = 7
 17 % 10 = 7
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;哈希表容量越大，输出相同的可能性就越低，通过&lt;em&gt;扩容哈希表&lt;/em&gt;可以减少&lt;em&gt;哈希冲突&lt;/em&gt;&lt;/p&gt;</description></item><item><title/><link>https://human-mean.github.io/readme/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/readme/</guid><description>&lt;p&gt;#Init&lt;/p&gt;</description></item></channel></rss>
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;哈希表容量越大，输出相同的可能性就越低，通过&lt;em&gt;扩容哈希表&lt;/em&gt;可以减少&lt;em&gt;哈希冲突&lt;/em&gt;&lt;/p&gt;</description></item><item><title>打印hello world</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/2.%E6%89%93%E5%8D%B0hello-world/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/2.%E6%89%93%E5%8D%B0hello-world/</guid><description>&lt;h2 id="阅读手册"&gt;阅读手册&lt;/h2&gt;
+&lt;p&gt;我们需要打印helloworld，需要知道两个事：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;1.字符往哪里写 &lt;br&gt;
+2.什么时候可以写&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;为此我们需要找到&lt;code&gt;DR&lt;/code&gt;和&lt;code&gt;FR&lt;/code&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;寄存器&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;th&gt;为什么需要&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;DR(Data Register)&lt;/td&gt;
+&lt;td&gt;数据寄存器&lt;/td&gt;
+&lt;td&gt;写入的字符从DR发出&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;FR(Flag Register)&lt;/td&gt;
+&lt;td&gt;状态寄存器&lt;/td&gt;
+&lt;td&gt;得知缓冲区是否满了&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/UARTDR.png" alt="" loading="lazy" /&gt;
+&lt;strong&gt;DR寄存器的偏移量为0x000&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/UARTFR.png" alt="" loading="lazy" /&gt;
+&lt;strong&gt;FR寄存器的偏移量为0x018&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;接下来查找TXFF的位定位。
+&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/UARTTXFF.png" alt="" loading="lazy" /&gt;
+&lt;strong&gt;TXFF&lt;/strong&gt;是bit5&lt;/p&gt;
+&lt;p&gt;知道了寄存器偏移量和位定位后开始写uart.h&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;#ifndef __UART_H__
+#define __UART_H__
+#define UART_BASE 0x09000000
+#define UART_DR (UART_BASE + 0x000)
+#define UART_FR (UART_BASE + 0x018)
+#define UART_TXFF (1&amp;lt;&amp;lt;5)
+#endif
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id="uartc实现"&gt;uart.c实现&lt;/h2&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;void uart_putc(char c)
+{
+while(UART_FR &amp;amp; UART_TXFF); //判断缓冲区是否为满
+UART_DR = c;
+}
+void uart_puts(char *s)
+{
+while (*s){
+uart_putc(*s++);
+}
+}
+&lt;/code&gt;&lt;/pre&gt;</description></item><item><title/><link>https://human-mean.github.io/readme/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/readme/</guid><description>&lt;p&gt;#Init&lt;/p&gt;</description></item></channel></rss>

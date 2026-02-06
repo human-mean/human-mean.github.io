@@ -25,7 +25,14 @@ index = hash(key) % capacity
 因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 0 到 capacity-1 的范围内。
 哈希冲突与扩容 哈希函数的作用是将所有 key 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此理论上一定存在多个输入对应相同输出的情况。
 比如：
-7 % 10 = 7 17 % 10 = 7 哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 哈希表" href=https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/></a></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
+7 % 10 = 7 17 % 10 = 7 哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 哈希表" href=https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/></a></article><article class=post-entry><header class=entry-header><h2 class=entry-hint-parent>打印hello world</h2></header><div class=entry-content><p>阅读手册 我们需要打印helloworld，需要知道两个事：
+1.字符往哪里写 2.什么时候可以写
+为此我们需要找到DR和FR
+寄存器 作用 为什么需要 DR(Data Register) 数据寄存器 写入的字符从DR发出 FR(Flag Register) 状态寄存器 得知缓冲区是否满了 DR寄存器的偏移量为0x000
+FR寄存器的偏移量为0x018
+接下来查找TXFF的位定位。 TXFF是bit5
+知道了寄存器偏移量和位定位后开始写uart.h
+#ifndef __UART_H__ #define __UART_H__ #define UART_BASE 0x09000000 #define UART_DR (UART_BASE + 0x000) #define UART_FR (UART_BASE + 0x018) #define UART_TXFF (1&lt;&lt;5) #endif uart.c实现 void uart_putc(char c) { while(UART_FR & UART_TXFF); //判断缓冲区是否为满 UART_DR = c; } void uart_puts(char *s) { while (*s){ uart_putc(*s++); } }</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 打印hello world" href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/2.%E6%89%93%E5%8D%B0hello-world/></a></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
 <span>Powered by
 <a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
 <a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg>
