@@ -160,12 +160,12 @@ bl main
 &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
-&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/UARTDR.png" alt="" loading="lazy" /&gt;
+&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTDR.png" alt="" loading="lazy" /&gt;
 &lt;strong&gt;DR寄存器的偏移量为0x000&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/UARTFR.png" alt="" loading="lazy" /&gt;
+&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTFR.png" alt="" loading="lazy" /&gt;
 &lt;strong&gt;FR寄存器的偏移量为0x018&lt;/strong&gt;&lt;/p&gt;
 &lt;p&gt;接下来查找TXFF的位定位。
-&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/UARTTXFF.png" alt="" loading="lazy" /&gt;
+&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTTXFF.png" alt="" loading="lazy" /&gt;
 &lt;strong&gt;TXFF&lt;/strong&gt;是bit5&lt;/p&gt;
 &lt;p&gt;知道了寄存器偏移量和位定位后开始写uart.h&lt;/p&gt;
 &lt;pre tabindex="0"&gt;&lt;code&gt;#ifndef __UART_H__
@@ -187,4 +187,6 @@ while (*s){
 uart_putc(*s++);
 }
 }
-&lt;/code&gt;&lt;/pre&gt;</description></item><item><title/><link>https://human-mean.github.io/readme/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/readme/</guid><description>&lt;p&gt;#Init&lt;/p&gt;</description></item></channel></rss>
+&lt;/code&gt;&lt;/pre&gt;</description></item><item><title/><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</guid><description>&lt;blockquote&gt;
+&lt;p&gt;虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。&lt;/p&gt;
+&lt;/blockquote&gt;</description></item><item><title/><link>https://human-mean.github.io/readme/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/readme/</guid><description>&lt;p&gt;#Init&lt;/p&gt;</description></item></channel></rss>
