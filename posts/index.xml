@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Posts on 嵌入式学习笔记</title><link>https://human-mean.github.io/posts/</link><description>Recent content in Posts on 嵌入式学习笔记</description><generator>Hugo -- 0.155.2</generator><language>zh-cn</language><lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://human-mean.github.io/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>ARM64启动流程</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</guid><description>&lt;h2 id="starts-启动代码"&gt;start.S 启动代码&lt;/h2&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Posts on 嵌入式学习笔记</title><link>https://human-mean.github.io/posts/</link><description>Recent content in Posts on 嵌入式学习笔记</description><generator>Hugo -- 0.155.2</generator><language>zh-cn</language><lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://human-mean.github.io/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>1.ARM64启动流程</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</guid><description>&lt;h2 id="starts-启动代码"&gt;start.S 启动代码&lt;/h2&gt;
 &lt;blockquote&gt;
 &lt;p&gt;start.S是cpu上电运行的第一段代码,负责初始化硬件环境并且为程序运行做准备。&lt;/p&gt;
 &lt;/blockquote&gt;
@@ -44,7 +44,100 @@ bl main
 */
 &lt;/code&gt;&lt;/pre&gt;&lt;h4 id="为什么不能直接写mov-x0-_stack_top"&gt;为什么不能直接写&lt;code&gt;mov x0, _stack_top&lt;/code&gt;?&lt;/h4&gt;
 &lt;blockquote&gt;
-&lt;p&gt;查阅数据手册可以知道，MOV指令立即数最大就是16位，无法通过一次指令表示&lt;code&gt;0x40010000&lt;/code&gt;这种任意地址&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
+&lt;p&gt;查阅数据手册可以知道，MOV指令立即数最大就是16位，无法通过一次指令表示&lt;code&gt;0x40010000&lt;/code&gt;这种任意地址&lt;/p&gt;</description></item><item><title>2.打印hello world</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/2.%E6%89%93%E5%8D%B0hello-world/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/2.%E6%89%93%E5%8D%B0hello-world/</guid><description>&lt;h2 id="阅读手册"&gt;阅读手册&lt;/h2&gt;
+&lt;p&gt;我们需要打印helloworld，需要知道两个事：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;1.字符往哪里写 &lt;br&gt;
+2.什么时候可以写&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;为此我们需要找到&lt;code&gt;DR&lt;/code&gt;和&lt;code&gt;FR&lt;/code&gt;&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;寄存器&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;th&gt;为什么需要&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;DR(Data Register)&lt;/td&gt;
+&lt;td&gt;数据寄存器&lt;/td&gt;
+&lt;td&gt;写入的字符从DR发出&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;FR(Flag Register)&lt;/td&gt;
+&lt;td&gt;状态寄存器&lt;/td&gt;
+&lt;td&gt;得知缓冲区是否满了&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTDR.png" alt="" loading="lazy" /&gt;
+&lt;strong&gt;DR寄存器的偏移量为0x000&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTFR.png" alt="" loading="lazy" /&gt;
+&lt;strong&gt;FR寄存器的偏移量为0x018&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;接下来查找TXFF的位定位。
+&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTTXFF.png" alt="" loading="lazy" /&gt;
+&lt;strong&gt;TXFF&lt;/strong&gt;是bit5&lt;/p&gt;
+&lt;p&gt;知道了寄存器偏移量和位定位后开始写uart.h&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;#ifndef __UART_H__
+#define __UART_H__
+#define UART_BASE 0x09000000
+#define UART_DR (UART_BASE + 0x000)
+#define UART_FR (UART_BASE + 0x018)
+#define UART_TXFF (1&amp;lt;&amp;lt;5)
+#endif
+&lt;/code&gt;&lt;/pre&gt;&lt;h2 id="uartc实现"&gt;uart.c实现&lt;/h2&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;void uart_putc(char c)
+{
+while(UART_FR &amp;amp; UART_TXFF); //判断缓冲区是否为满
+UART_DR = c;
+}
+void uart_puts(char *s)
+{
+while (*s){
+uart_putc(*s++);
+}
+}
+&lt;/code&gt;&lt;/pre&gt;</description></item><item><title>3.实现异常向量表 + GDB 调试能力</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</guid><description>&lt;blockquote&gt;
+&lt;p&gt;虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id="阅读手册"&gt;阅读手册&lt;/h2&gt;
+&lt;p&gt;找到手册《DDI0487_M_a_a_a-profile_architecture_reference_manual》
+&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/exception_vector.png" alt="" loading="lazy" /&gt;
+&lt;/p&gt;
+&lt;h3 id="什么是异常"&gt;什么是异常&lt;/h3&gt;
+&lt;p&gt;在CPU运行的时候，遇到被打断的事件就称作异常，这是一个技术术语，并不带贬义。CPU被打断后需要知道要跳去那哪里处理，向量表就是告诉cpu跳转去哪里的一张表。&lt;/p&gt;
+&lt;h3 id="异常类型"&gt;异常类型&lt;/h3&gt;
+&lt;p&gt;ARM64有&lt;strong&gt;4&lt;/strong&gt;种异常类型：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;Synchronous&lt;/strong&gt;:代码主动触发，如执行非法指令，访问非法地址，调用&lt;code&gt;svc&lt;/code&gt;系统调用。叫作&lt;strong&gt;同步&lt;/strong&gt;是因为和正在执行的指令相关。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;IRQ&lt;/strong&gt;:外部硬件中断，如定时器中断，串口中断。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;FIQ&lt;/strong&gt;:快速中断，比IRQ优先级更高。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;SError&lt;/strong&gt;系统错误，比如外部内存总线出错。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;每个异常发生的时候，都需要区分&lt;strong&gt;状态&lt;/strong&gt;，ARM64按照两个维度区分：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;1,异常来自当前EL还是更低的EL
+2.异常发生的时候用的哪个栈指针&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;p&gt;EL=Exception Level(异常级别)
+ARM64把CPU运行权限分成4层，数字越大权限越高：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;EL0&lt;/strong&gt; — 用户程序（权限最低，不能碰硬件）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;EL1&lt;/strong&gt; — OS 内核（管理内存、中断）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;EL2&lt;/strong&gt; — Hypervisor（虚拟机监控器 ← 最终目标）&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;EL3&lt;/strong&gt; — 安全固件（Secure Monitor，一般不碰）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;p&gt;这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
 &lt;h2 id="1-概述"&gt;1. 概述&lt;/h2&gt;
 &lt;p&gt;NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 &lt;strong&gt;Tickless 模式（动态时钟）&lt;/strong&gt;，以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。&lt;/p&gt;
 &lt;p&gt;系统的核心不仅仅是简单的链表管理，而是采用了**红黑树（Red-Black Tree）**作为定时器容器，显著提升了在大量定时器并发场景下的插入与查找效率。&lt;/p&gt;
@@ -132,61 +225,4 @@ bl main
 &lt;p&gt;比如：&lt;/p&gt;
 &lt;pre tabindex="0"&gt;&lt;code&gt;7 % 10 = 7
 17 % 10 = 7
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;哈希表容量越大，输出相同的可能性就越低，通过&lt;em&gt;扩容哈希表&lt;/em&gt;可以减少&lt;em&gt;哈希冲突&lt;/em&gt;&lt;/p&gt;</description></item><item><title>打印hello world</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/2.%E6%89%93%E5%8D%B0hello-world/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/2.%E6%89%93%E5%8D%B0hello-world/</guid><description>&lt;h2 id="阅读手册"&gt;阅读手册&lt;/h2&gt;
-&lt;p&gt;我们需要打印helloworld，需要知道两个事：&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;1.字符往哪里写 &lt;br&gt;
-2.什么时候可以写&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;为此我们需要找到&lt;code&gt;DR&lt;/code&gt;和&lt;code&gt;FR&lt;/code&gt;&lt;/p&gt;
-&lt;table&gt;
-&lt;thead&gt;
-&lt;tr&gt;
-&lt;th&gt;寄存器&lt;/th&gt;
-&lt;th&gt;作用&lt;/th&gt;
-&lt;th&gt;为什么需要&lt;/th&gt;
-&lt;/tr&gt;
-&lt;/thead&gt;
-&lt;tbody&gt;
-&lt;tr&gt;
-&lt;td&gt;DR(Data Register)&lt;/td&gt;
-&lt;td&gt;数据寄存器&lt;/td&gt;
-&lt;td&gt;写入的字符从DR发出&lt;/td&gt;
-&lt;/tr&gt;
-&lt;tr&gt;
-&lt;td&gt;FR(Flag Register)&lt;/td&gt;
-&lt;td&gt;状态寄存器&lt;/td&gt;
-&lt;td&gt;得知缓冲区是否满了&lt;/td&gt;
-&lt;/tr&gt;
-&lt;/tbody&gt;
-&lt;/table&gt;
-&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTDR.png" alt="" loading="lazy" /&gt;
-&lt;strong&gt;DR寄存器的偏移量为0x000&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTFR.png" alt="" loading="lazy" /&gt;
-&lt;strong&gt;FR寄存器的偏移量为0x018&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;接下来查找TXFF的位定位。
-&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/UARTTXFF.png" alt="" loading="lazy" /&gt;
-&lt;strong&gt;TXFF&lt;/strong&gt;是bit5&lt;/p&gt;
-&lt;p&gt;知道了寄存器偏移量和位定位后开始写uart.h&lt;/p&gt;
-&lt;pre tabindex="0"&gt;&lt;code&gt;#ifndef __UART_H__
-#define __UART_H__
-#define UART_BASE 0x09000000
-#define UART_DR (UART_BASE + 0x000)
-#define UART_FR (UART_BASE + 0x018)
-#define UART_TXFF (1&amp;lt;&amp;lt;5)
-#endif
-&lt;/code&gt;&lt;/pre&gt;&lt;h2 id="uartc实现"&gt;uart.c实现&lt;/h2&gt;
-&lt;pre tabindex="0"&gt;&lt;code&gt;void uart_putc(char c)
-{
-while(UART_FR &amp;amp; UART_TXFF); //判断缓冲区是否为满
-UART_DR = c;
-}
-void uart_puts(char *s)
-{
-while (*s){
-uart_putc(*s++);
-}
-}
-&lt;/code&gt;&lt;/pre&gt;</description></item><item><title/><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</guid><description>&lt;blockquote&gt;
-&lt;p&gt;虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。&lt;/p&gt;
-&lt;/blockquote&gt;</description></item></channel></rss>
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;哈希表容量越大，输出相同的可能性就越低，通过&lt;em&gt;扩容哈希表&lt;/em&gt;可以减少&lt;em&gt;哈希冲突&lt;/em&gt;&lt;/p&gt;</description></item></channel></rss>

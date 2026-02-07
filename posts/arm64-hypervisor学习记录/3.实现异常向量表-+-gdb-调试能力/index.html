@@ -1,10 +1,95 @@
-<!doctype html><html lang=en dir=auto data-theme=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>嵌入式学习笔记</title><meta name=keywords content><meta name=description content="
+<!doctype html><html lang=en dir=auto data-theme=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>3.实现异常向量表 + GDB 调试能力 | 嵌入式学习笔记</title><meta name=keywords content><meta name=description content="
 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。
-"><meta name=author content><link rel=canonical href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/><link crossorigin=anonymous href=/assets/css/stylesheet.css rel="preload stylesheet" as=style><link rel=icon href=https://human-mean.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://human-mean.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://human-mean.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://human-mean.github.io/apple-touch-icon.png><link rel=mask-icon href=https://human-mean.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate hreflang=en href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme:rgb(29, 30, 32);--entry:rgb(46, 46, 51);--primary:rgb(218, 218, 219);--secondary:rgb(155, 156, 157);--tertiary:rgb(65, 66, 68);--content:rgb(196, 196, 197);--code-block-bg:rgb(46, 46, 51);--code-bg:rgb(55, 56, 62);--border:rgb(51, 51, 51);color-scheme:dark}.list{background:var(--theme)}.toc{background:var(--entry)}}@media(prefers-color-scheme:light){.list::-webkit-scrollbar-thumb{border-color:var(--code-bg)}}</style></noscript><script>localStorage.getItem("pref-theme")==="dark"?document.querySelector("html").dataset.theme="dark":localStorage.getItem("pref-theme")==="light"?document.querySelector("html").dataset.theme="light":window.matchMedia("(prefers-color-scheme: dark)").matches?document.querySelector("html").dataset.theme="dark":document.querySelector("html").dataset.theme="light"</script><meta property="og:url" content="https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/"><meta property="og:site_name" content="嵌入式学习笔记"><meta property="og:title" content="嵌入式学习笔记"><meta property="og:description" content=" 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。"><meta property="og:locale" content="zh-cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta name=twitter:card content="summary"><meta name=twitter:title content><meta name=twitter:description content="
+
+阅读手册
+找到手册《DDI0487_M_a_a_a-profile_architecture_reference_manual》
+
+
+什么是异常
+在CPU运行的时候，遇到被打断的事件就称作异常，这是一个技术术语，并不带贬义。CPU被打断后需要知道要跳去那哪里处理，向量表就是告诉cpu跳转去哪里的一张表。
+异常类型
+ARM64有4种异常类型：
+
+Synchronous:代码主动触发，如执行非法指令，访问非法地址，调用svc系统调用。叫作同步是因为和正在执行的指令相关。
+
+
+IRQ:外部硬件中断，如定时器中断，串口中断。
+
+
+FIQ:快速中断，比IRQ优先级更高。
+
+
+SError系统错误，比如外部内存总线出错。
+
+每个异常发生的时候，都需要区分状态，ARM64按照两个维度区分：
+
+1,异常来自当前EL还是更低的EL
+2.异常发生的时候用的哪个栈指针
+
+
+EL=Exception Level(异常级别)
+ARM64把CPU运行权限分成4层，数字越大权限越高：
+
+EL0 — 用户程序（权限最低，不能碰硬件）
+EL1 — OS 内核（管理内存、中断）
+EL2 — Hypervisor（虚拟机监控器 ← 最终目标）
+EL3 — 安全固件（Secure Monitor，一般不碰）
+
+
+这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。"><meta name=author content><link rel=canonical href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/><link crossorigin=anonymous href=/assets/css/stylesheet.css rel="preload stylesheet" as=style><link rel=icon href=https://human-mean.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://human-mean.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://human-mean.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://human-mean.github.io/apple-touch-icon.png><link rel=mask-icon href=https://human-mean.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate hreflang=en href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme:rgb(29, 30, 32);--entry:rgb(46, 46, 51);--primary:rgb(218, 218, 219);--secondary:rgb(155, 156, 157);--tertiary:rgb(65, 66, 68);--content:rgb(196, 196, 197);--code-block-bg:rgb(46, 46, 51);--code-bg:rgb(55, 56, 62);--border:rgb(51, 51, 51);color-scheme:dark}.list{background:var(--theme)}.toc{background:var(--entry)}}@media(prefers-color-scheme:light){.list::-webkit-scrollbar-thumb{border-color:var(--code-bg)}}</style></noscript><script>localStorage.getItem("pref-theme")==="dark"?document.querySelector("html").dataset.theme="dark":localStorage.getItem("pref-theme")==="light"?document.querySelector("html").dataset.theme="light":window.matchMedia("(prefers-color-scheme: dark)").matches?document.querySelector("html").dataset.theme="dark":document.querySelector("html").dataset.theme="light"</script><meta property="og:url" content="https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/"><meta property="og:site_name" content="嵌入式学习笔记"><meta property="og:title" content="3.实现异常向量表 + GDB 调试能力"><meta property="og:description" content=" 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。
+阅读手册 找到手册《DDI0487_M_a_a_a-profile_architecture_reference_manual》 什么是异常 在CPU运行的时候，遇到被打断的事件就称作异常，这是一个技术术语，并不带贬义。CPU被打断后需要知道要跳去那哪里处理，向量表就是告诉cpu跳转去哪里的一张表。
+异常类型 ARM64有4种异常类型：
+Synchronous:代码主动触发，如执行非法指令，访问非法地址，调用svc系统调用。叫作同步是因为和正在执行的指令相关。
+IRQ:外部硬件中断，如定时器中断，串口中断。
+FIQ:快速中断，比IRQ优先级更高。
+SError系统错误，比如外部内存总线出错。
+每个异常发生的时候，都需要区分状态，ARM64按照两个维度区分：
+1,异常来自当前EL还是更低的EL 2.异常发生的时候用的哪个栈指针
+EL=Exception Level(异常级别) ARM64把CPU运行权限分成4层，数字越大权限越高：
+EL0 — 用户程序（权限最低，不能碰硬件） EL1 — OS 内核（管理内存、中断） EL2 — Hypervisor（虚拟机监控器 ← 最终目标） EL3 — 安全固件（Secure Monitor，一般不碰） 这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。"><meta property="og:locale" content="zh-cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2026-02-03T00:00:00+00:00"><meta property="article:modified_time" content="2026-02-03T00:00:00+00:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="3.实现异常向量表 + GDB 调试能力"><meta name=twitter:description content="
 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。
-"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://human-mean.github.io/posts/"},{"@type":"ListItem","position":2,"name":"","item":"https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"","name":"","description":" 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。\n","keywords":[],"articleBody":" 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。\n","wordCount":"1","inLanguage":"en","datePublished":"0001-01-01T00:00:00Z","dateModified":"0001-01-01T00:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/"},"publisher":{"@type":"Organization","name":"嵌入式学习笔记","logo":{"@type":"ImageObject","url":"https://human-mean.github.io/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=nav><div class=logo><a href=https://human-mean.github.io/ accesskey=h title="嵌入式学习笔记 (Alt + H)">嵌入式学习笔记</a><div class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
+
+阅读手册
+找到手册《DDI0487_M_a_a_a-profile_architecture_reference_manual》
+
+
+什么是异常
+在CPU运行的时候，遇到被打断的事件就称作异常，这是一个技术术语，并不带贬义。CPU被打断后需要知道要跳去那哪里处理，向量表就是告诉cpu跳转去哪里的一张表。
+异常类型
+ARM64有4种异常类型：
+
+Synchronous:代码主动触发，如执行非法指令，访问非法地址，调用svc系统调用。叫作同步是因为和正在执行的指令相关。
+
+
+IRQ:外部硬件中断，如定时器中断，串口中断。
+
+
+FIQ:快速中断，比IRQ优先级更高。
+
+
+SError系统错误，比如外部内存总线出错。
+
+每个异常发生的时候，都需要区分状态，ARM64按照两个维度区分：
+
+1,异常来自当前EL还是更低的EL
+2.异常发生的时候用的哪个栈指针
+
+
+EL=Exception Level(异常级别)
+ARM64把CPU运行权限分成4层，数字越大权限越高：
+
+EL0 — 用户程序（权限最低，不能碰硬件）
+EL1 — OS 内核（管理内存、中断）
+EL2 — Hypervisor（虚拟机监控器 ← 最终目标）
+EL3 — 安全固件（Secure Monitor，一般不碰）
+
+
+这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://human-mean.github.io/posts/"},{"@type":"ListItem","position":2,"name":"3.实现异常向量表 + GDB 调试能力","item":"https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"3.实现异常向量表 + GDB 调试能力","name":"3.实现异常向量表 \u002b GDB 调试能力","description":" 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。\n阅读手册 找到手册《DDI0487_M_a_a_a-profile_architecture_reference_manual》 什么是异常 在CPU运行的时候，遇到被打断的事件就称作异常，这是一个技术术语，并不带贬义。CPU被打断后需要知道要跳去那哪里处理，向量表就是告诉cpu跳转去哪里的一张表。\n异常类型 ARM64有4种异常类型：\nSynchronous:代码主动触发，如执行非法指令，访问非法地址，调用svc系统调用。叫作同步是因为和正在执行的指令相关。\nIRQ:外部硬件中断，如定时器中断，串口中断。\nFIQ:快速中断，比IRQ优先级更高。\nSError系统错误，比如外部内存总线出错。\n每个异常发生的时候，都需要区分状态，ARM64按照两个维度区分：\n1,异常来自当前EL还是更低的EL 2.异常发生的时候用的哪个栈指针\nEL=Exception Level(异常级别) ARM64把CPU运行权限分成4层，数字越大权限越高：\nEL0 — 用户程序（权限最低，不能碰硬件） EL1 — OS 内核（管理内存、中断） EL2 — Hypervisor（虚拟机监控器 ← 最终目标） EL3 — 安全固件（Secure Monitor，一般不碰） 这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。\n","keywords":[],"articleBody":" 虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。\n阅读手册 找到手册《DDI0487_M_a_a_a-profile_architecture_reference_manual》 什么是异常 在CPU运行的时候，遇到被打断的事件就称作异常，这是一个技术术语，并不带贬义。CPU被打断后需要知道要跳去那哪里处理，向量表就是告诉cpu跳转去哪里的一张表。\n异常类型 ARM64有4种异常类型：\nSynchronous:代码主动触发，如执行非法指令，访问非法地址，调用svc系统调用。叫作同步是因为和正在执行的指令相关。\nIRQ:外部硬件中断，如定时器中断，串口中断。\nFIQ:快速中断，比IRQ优先级更高。\nSError系统错误，比如外部内存总线出错。\n每个异常发生的时候，都需要区分状态，ARM64按照两个维度区分：\n1,异常来自当前EL还是更低的EL 2.异常发生的时候用的哪个栈指针\nEL=Exception Level(异常级别) ARM64把CPU运行权限分成4层，数字越大权限越高：\nEL0 — 用户程序（权限最低，不能碰硬件） EL1 — OS 内核（管理内存、中断） EL2 — Hypervisor（虚拟机监控器 ← 最终目标） EL3 — 安全固件（Secure Monitor，一般不碰） 这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。\n","wordCount":"37","inLanguage":"en","datePublished":"2026-02-03T00:00:00Z","dateModified":"2026-02-03T00:00:00Z","mainEntityOfPage":{"@type":"WebPage","@id":"https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/"},"publisher":{"@type":"Organization","name":"嵌入式学习笔记","logo":{"@type":"ImageObject","url":"https://human-mean.github.io/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=nav><div class=logo><a href=https://human-mean.github.io/ accesskey=h title="嵌入式学习笔记 (Alt + H)">嵌入式学习笔记</a><div class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
 <svg id="moon" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-<svg id="sun" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu></ul></nav></header><main class=main><div class=post-wrapper><article class=post-single><header class=post-header><h1 class="post-title entry-hint-parent"></h1><div class=post-meta><span>1 min</span></div></header><div class=post-content><blockquote><p>虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。</p></blockquote></div><footer class=post-footer><ul class=post-tags></ul></footer></article><aside class=toc-sidebar><div class=toc-inner><details open><summary>目录</summary><nav id=TableOfContents></nav></details></div></aside></div></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
+<svg id="sun" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu></ul></nav></header><main class=main><div class=post-wrapper><article class=post-single><header class=post-header><h1 class="post-title entry-hint-parent">3.实现异常向量表 + GDB 调试能力</h1><div class=post-meta><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></div></header><div class=post-content><blockquote><p>虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。</p></blockquote><h2 id=阅读手册>阅读手册<a hidden class=anchor aria-hidden=true href=#阅读手册>#</a></h2><p>找到手册《DDI0487_M_a_a_a-profile_architecture_reference_manual》
+<img src=/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/exception_vector.png alt loading=lazy></p><h3 id=什么是异常>什么是异常<a hidden class=anchor aria-hidden=true href=#什么是异常>#</a></h3><p>在CPU运行的时候，遇到被打断的事件就称作异常，这是一个技术术语，并不带贬义。CPU被打断后需要知道要跳去那哪里处理，向量表就是告诉cpu跳转去哪里的一张表。</p><h3 id=异常类型>异常类型<a hidden class=anchor aria-hidden=true href=#异常类型>#</a></h3><p>ARM64有<strong>4</strong>种异常类型：</p><blockquote><p><strong>Synchronous</strong>:代码主动触发，如执行非法指令，访问非法地址，调用<code>svc</code>系统调用。叫作<strong>同步</strong>是因为和正在执行的指令相关。</p></blockquote><blockquote><p><strong>IRQ</strong>:外部硬件中断，如定时器中断，串口中断。</p></blockquote><blockquote><p><strong>FIQ</strong>:快速中断，比IRQ优先级更高。</p></blockquote><blockquote><p><strong>SError</strong>系统错误，比如外部内存总线出错。</p></blockquote><p>每个异常发生的时候，都需要区分<strong>状态</strong>，ARM64按照两个维度区分：</p><blockquote><p>1,异常来自当前EL还是更低的EL
+2.异常发生的时候用的哪个栈指针</p></blockquote><p>EL=Exception Level(异常级别)
+ARM64把CPU运行权限分成4层，数字越大权限越高：</p><ul><li><strong>EL0</strong> — 用户程序（权限最低，不能碰硬件）</li><li><strong>EL1</strong> — OS 内核（管理内存、中断）</li><li><strong>EL2</strong> — Hypervisor（虚拟机监控器 ← 最终目标）</li><li><strong>EL3</strong> — 安全固件（Secure Monitor，一般不碰）</li></ul><p>这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。</p></div><footer class=post-footer><ul class=post-tags></ul></footer></article><aside class=toc-sidebar><div class=toc-inner><details open><summary>目录</summary><nav id=TableOfContents><ul><li><a href=#阅读手册>阅读手册</a><ul><li><a href=#什么是异常>什么是异常</a></li><li><a href=#异常类型>异常类型</a></li></ul></li></ul></nav></details></div></aside></div></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
 <span>Powered by
 <a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
 <a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg>
