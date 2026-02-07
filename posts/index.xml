@@ -99,7 +99,7 @@ while (*s){
 uart_putc(*s++);
 }
 }
-&lt;/code&gt;&lt;/pre&gt;</description></item><item><title>3.实现异常向量表 + GDB 调试能力</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8-+-gdb-%E8%B0%83%E8%AF%95%E8%83%BD%E5%8A%9B/</guid><description>&lt;blockquote&gt;
+&lt;/code&gt;&lt;/pre&gt;</description></item><item><title>3.实现异常向量表</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8/</guid><description>&lt;blockquote&gt;
 &lt;p&gt;虽然现在能够跑helloworld，但如果遇到错误（比如访问非法地址），CPU会挂死且没有提示，异常向量表可以让我们获取错误信息。&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;h2 id="阅读手册"&gt;阅读手册&lt;/h2&gt;
@@ -130,14 +130,64 @@ uart_putc(*s++);
 &lt;!-- raw HTML omitted --&gt;
 &lt;p&gt;EL=Exception Level(异常级别)
 ARM64把CPU运行权限分成4层，数字越大权限越高：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;EL0&lt;/strong&gt; — 用户程序（权限最低，不能碰硬件）&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;EL1&lt;/strong&gt; — OS 内核（管理内存、中断）&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;EL2&lt;/strong&gt; — Hypervisor（虚拟机监控器 ← 最终目标）&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;EL3&lt;/strong&gt; — 安全固件（Secure Monitor，一般不碰）&lt;/li&gt;
-&lt;/ul&gt;
 &lt;!-- raw HTML omitted --&gt;
-&lt;p&gt;这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
+&lt;p&gt;EL0 的用户程序不能直接操作硬件，必须通过 EL1 内核。EL1 的内核不能绕过 EL2 的 Hypervisor。每一层只能访问自己和更低层的资源。&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;p&gt;这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;vector.S&lt;/strong&gt;&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;/*
+----------------------------
+第1组：当前EL,SP_EL0
+----------------------------
+*/
+.balign 128 //0X00 - Synchronous
+b .
+.balign 128 //0x080 - IRQ
+b .
+.balign 128 //0x100 - FIQ
+b .
+.balign 128 //0x180 - Serror
+b .
+/*
+----------------------------
+第2组：当前EL,SP_ELx
+----------------------------
+*/
+.balign 128 //0x200 - Synchronous
+b .
+.balign 128 //0x280 - IRQ
+b .
+.balign 128 //0x300 - FIQ
+b .
+.balign 128 //0x380 - Serror
+b .
+/*
+----------------------------
+第2组：更低级EL，AArch64
+----------------------------
+*/
+.balign 128 //0x400 - Synchronous
+b .
+.balign 128 //0x480 - IRQ
+b .
+.balign 128 //0x500 - FIQ
+b .
+.balign 128 //0x580 - Serror
+b .
+/*
+----------------------------
+第4组：更低级EL,AArch32
+----------------------------
+*/
+.balign 128 //0x600 - Synchronous
+b .
+.balign 128 //0x680 - IRQ
+b .
+.balign 128 //0x700 - FIQ
+b .
+.balign 128 //0x780 - Serror
+b .
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;strong&gt;start.S&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
 &lt;h2 id="1-概述"&gt;1. 概述&lt;/h2&gt;
 &lt;p&gt;NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 &lt;strong&gt;Tickless 模式（动态时钟）&lt;/strong&gt;，以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。&lt;/p&gt;
 &lt;p&gt;系统的核心不仅仅是简单的链表管理，而是采用了**红黑树（Red-Black Tree）**作为定时器容器，显著提升了在大量定时器并发场景下的插入与查找效率。&lt;/p&gt;
