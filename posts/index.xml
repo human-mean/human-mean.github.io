@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Posts on 嵌入式学习笔记</title><link>https://human-mean.github.io/posts/</link><description>Recent content in Posts on 嵌入式学习笔记</description><generator>Hugo -- 0.155.2</generator><language>zh-cn</language><lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://human-mean.github.io/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>1.ARM64启动流程</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</guid><description>&lt;h2 id="starts-启动代码"&gt;start.S 启动代码&lt;/h2&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Posts on 嵌入式学习笔记</title><link>https://human-mean.github.io/posts/</link><description>Recent content in Posts on 嵌入式学习笔记</description><generator>Hugo -- 0.155.3</generator><language>zh-cn</language><lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://human-mean.github.io/posts/index.xml" rel="self" type="application/rss+xml"/><item><title>1.ARM64启动流程</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/1.arm64%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B/</guid><description>&lt;h2 id="starts-启动代码"&gt;start.S 启动代码&lt;/h2&gt;
 &lt;blockquote&gt;
 &lt;p&gt;start.S是cpu上电运行的第一段代码,负责初始化硬件环境并且为程序运行做准备。&lt;/p&gt;
 &lt;/blockquote&gt;
@@ -187,7 +187,95 @@ b .
 b .
 .balign 128 //0x780 - Serror
 b .
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;strong&gt;start.S&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;strong&gt;start.S&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>4.恒等映射MMU</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/4.%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84mmu/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/4.%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84mmu/</guid><description>&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;📋 一些基础概念&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Stage 1&lt;/strong&gt;:将&lt;strong&gt;虚拟地址 (VA)&lt;/strong&gt; 转换为&lt;strong&gt;物理地址 (PA)&lt;/strong&gt;（在非虚拟化环境下）或者转换为&lt;strong&gt;中间物理地址 (IPA)&lt;/strong&gt;（在虚拟化环境下）。它主要受 OS 控制，用来做进程隔离。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Stage 2&lt;/strong&gt;：将 &lt;strong&gt;IPA&lt;/strong&gt; 转换为真正的 &lt;strong&gt;物理地址 (PA)&lt;/strong&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;h3 id="为什么需要mmu"&gt;为什么需要&lt;strong&gt;MMU&lt;/strong&gt;？&lt;/h3&gt;
+&lt;p&gt;裸机代码中CPU发送的地址直接发送到物理内存。但存在几个问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;所有代码都能访问所有地址，没有保护&lt;/li&gt;
+&lt;li&gt;若跑多个Guest OS,地址会存在冲突&lt;/li&gt;
+&lt;li&gt;没法控制某段内存是 cacheable 还是 device 类型&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;MMU就是在CPU和物理内存中充当了翻译：CPU发送虚拟地址（VA），MMU通过查表翻译成物理地址（PA），同时附带权限和属性的信息。MMU查的这个表就是&lt;strong&gt;页表&lt;/strong&gt;。&lt;/p&gt;
+&lt;h4 id="恒等映射"&gt;&lt;strong&gt;恒等映射&lt;/strong&gt;：&lt;/h4&gt;
+&lt;blockquote&gt;
+&lt;p&gt;恒等映射即虚拟地址=物理地址&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;先从恒等映射开始是因为：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;从 BootLoader/BIOS 跳转到操作系统(如 Linux 内核)入口时,MMU 是关闭的。关闭了MMU 意味着不能利用高速缓存的性能。
+&lt;strong&gt;MMU 关闭&lt;/strong&gt;: 所有内存访问都是 Non-cacheable,每次访问主存 ~100+ cycles。
+&lt;strong&gt;MMU 开启&lt;/strong&gt;: 页表标记内存为 Cacheable,Cache 命中 ~3-5 cycles。
+因此,我们在初始化的某个阶段需要把 MMU 打开并且使能数据高速缓存,以获得更高的性能。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;但是MMU开启的瞬间，CPU发送的所有指令都会被翻译。如果VA≠PA，PC指向的地址会指向错误位置。这时候恒等映射就派上用场了，确保开启前后代码能正常运行&lt;/strong&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;h4 id="页表"&gt;页表&lt;/h4&gt;
+&lt;p&gt;假设有一个&lt;code&gt;uint64_t table[512]&lt;/code&gt;,通过index，数组返回一个值。页表原理类似，MMU拿到一个虚拟地址，从里面找到几个bit当作index，从页表去查数组，得到结果。如果一级数组来覆盖整个48-bit地址空间，需要2^48，不现实。&lt;/p&gt;
+&lt;p&gt;所以需要用到&lt;strong&gt;多级数组&lt;/strong&gt;。4KB garanule是一个四维数组查找：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;table_L0[i0] -&amp;gt; 指向table_L1&lt;/li&gt;
+&lt;li&gt;table_L1[i1] -&amp;gt; 指向table_L2&lt;/li&gt;
+&lt;li&gt;table_L2[i2] -&amp;gt; 指向table_L3&lt;/li&gt;
+&lt;li&gt;table_L3[i3] -&amp;gt; 最终的物理页地址&lt;/li&gt;
+&lt;/ul&gt;
+&lt;details open style="
+border: 1px solid #448aff;
+border-left: 4px solid #448aff; /* 左侧加粗线 */
+background-color: #f8f9fa;
+border-radius: 4px;
+margin: 1.5em 0;
+padding: 0;
+overflow: hidden;"&gt;
+&lt;summary style="
+background-color: #448aff1a; /* 10% 透明度背景 */
+padding: 8px 12px;
+font-weight: bold;
+cursor: pointer;
+color: #448aff;
+outline: none;"&gt;
+为什么是 48-bit &amp;amp; 4级页表？
+&lt;/summary&gt;
+&lt;div style="padding: 15px; background: #fff; color: #333;"&gt;
+&lt;p&gt;&lt;strong&gt;1. 基础限制&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>5.GIC中断</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/5.gic%E4%B8%AD%E6%96%AD/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/5.gic%E4%B8%AD%E6%96%AD/</guid><description>&lt;h4 id="什么是gic"&gt;什么是GIC&lt;/h4&gt;
+&lt;p&gt;GIC(Generic Interrupt Controller)即通用中断控制器。&lt;/p&gt;
+&lt;p&gt;GIC负责接受来自外设或者软件的中断信号，进行优先级排序，将其分发给处理器核心（PE）。&lt;/p&gt;
+&lt;p&gt;GIC使用中断ID来判断中断源：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;SGI:ID 0-15。软件生成的中断，通常用于核间通信（IPI）。&lt;/li&gt;
+&lt;li&gt;PPI:ID 16-31。私有外设中断，特定用于某个核心。&lt;/li&gt;
+&lt;li&gt;SPI:ID 32-1019。共享外设中断，可以路由给任意核心和一组核心。&lt;/li&gt;
+&lt;li&gt;LPI:ID 8192及以上。&lt;strong&gt;GICv3&lt;/strong&gt;新增的，基于消息的中断，主要用于PCLe&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;中断在其生命周期中会处于以下几种状态 ：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Inactive (非活动)&lt;/strong&gt;: 中断未发生。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Pending (挂起)&lt;/strong&gt;: 中断已发生，等待核心处理。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Active (活动)&lt;/strong&gt;: 核心已确认中断，正在处理中。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Active and Pending&lt;/strong&gt;: 核心正在处理该中断，但同源的新中断又发生了。&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;注意：LPI 没有 Active 状态，只有 Pending 或 Inactive。&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="从外设到cpu的流水线"&gt;从外设到CPU的流水线&lt;/h3&gt;
+&lt;p&gt;GICv3中，三个组件构成了中断从生产到被CPU处理的流水线：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Distributor(全局分发器)&lt;/strong&gt;:根据 &lt;code&gt;GICD_IROUTERn&lt;/code&gt; 寄存器配置的亲和性，将 SPI 路由到特定的目标 PE。在多个挂起的 SPI 中，选出优先级最高的 SPI，并将其挂起状态转发给对应的 Redistributor。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Redistributor（本地重分发器）&lt;/strong&gt;：&lt;strong&gt;第二级（聚合）仲裁&lt;/strong&gt;，接收来自 Distributor 的最高优先级 SPI，将其与本地挂起的最高优先级 PPI、SGI 和 LPI 进行综合比较，选出该 PE 视角下的&lt;strong&gt;绝对最高优先级中断&lt;/strong&gt;，并将其发往 CPU Interface。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;CPU Interface (CPU 接口)&lt;/strong&gt;：GIC 与 PE 核心内部流水线交互的直接物理/逻辑接口。
+&lt;img src="https://human-mean.github.io/posts/ARM64%20Hypervisor%e5%ad%a6%e4%b9%a0%e8%ae%b0%e5%bd%95/images/gic_architecture.png" alt="" loading="lazy" /&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="阅读ihi0069h_"&gt;阅读&lt;em&gt;IHI0069H_b_gic_architecture_specification&lt;/em&gt;&lt;/h3&gt;
+&lt;h4 id="distributor"&gt;Distributor&lt;/h4&gt;
+&lt;h5 id="gicd_"&gt;&lt;strong&gt;GICD_CTRL&lt;/strong&gt;:&lt;/h5&gt;
+&lt;p&gt;GICD_CTRL是Distributor的&lt;strong&gt;控制寄存器&lt;/strong&gt;。&lt;/p&gt;</description></item><item><title>NerdRTOS 定时器设计文档</title><link>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/nerdrtos/nerdrtos%E5%AE%9A%E6%97%B6%E5%99%A8%E8%AE%BE%E8%AE%A1%E6%96%87%E6%A1%A3/</guid><description>&lt;h1 id="nerdrtos-定时器子系统设计文档"&gt;NerdRTOS 定时器子系统设计文档&lt;/h1&gt;
 &lt;h2 id="1-概述"&gt;1. 概述&lt;/h2&gt;
 &lt;p&gt;NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 &lt;strong&gt;Tickless 模式（动态时钟）&lt;/strong&gt;，以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。&lt;/p&gt;
 &lt;p&gt;系统的核心不仅仅是简单的链表管理，而是采用了**红黑树（Red-Black Tree）**作为定时器容器，显著提升了在大量定时器并发场景下的插入与查找效率。&lt;/p&gt;
@@ -275,61 +363,4 @@ b .
 &lt;p&gt;比如：&lt;/p&gt;
 &lt;pre tabindex="0"&gt;&lt;code&gt;7 % 10 = 7
 17 % 10 = 7
-&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;哈希表容量越大，输出相同的可能性就越低，通过&lt;em&gt;扩容哈希表&lt;/em&gt;可以减少&lt;em&gt;哈希冲突&lt;/em&gt;&lt;/p&gt;</description></item><item><title>恒等映射MMU</title><link>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/4.%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84mmu/</link><pubDate>Tue, 03 Feb 2026 00:00:00 +0000</pubDate><guid>https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/4.%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84mmu/</guid><description>&lt;h3 id="为什么需要mmu"&gt;为什么需要&lt;strong&gt;MMU&lt;/strong&gt;？&lt;/h3&gt;
-&lt;blockquote&gt;
-&lt;p&gt;裸机代码中CPU发送的地址直接发送到物理内存。但存在几个问题：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;所有代码都能访问所有地址，没有保护。&lt;/li&gt;
-&lt;li&gt;若跑多个Guest OS,地址会存在冲突。&lt;/li&gt;
-&lt;li&gt;没法控制某段内存是 cacheable 还是 device 类型&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;MMU就是在CPU和物理内存中充当了翻译：CPU发送虚拟地址（VA），MMU通过查表翻译成物理地址（PA），同时附带权限和属性的信息。MMU查的这个表就是&lt;strong&gt;页表&lt;/strong&gt;。&lt;/p&gt;
-&lt;h4 id="恒等映射"&gt;&lt;strong&gt;恒等映射&lt;/strong&gt;：&lt;/h4&gt;
-&lt;blockquote&gt;
-&lt;p&gt;恒等映射即虚拟地址=物理地址&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;先从恒等映射开始是因为：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;MMU 启用前后，PC 指针指向的地址必须在 MMU 启用后仍然有效，不然读取不到下一条指令。&lt;/li&gt;
-&lt;li&gt;代码段、栈、串口都用恒等映射，逻辑简单，容易调试。&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h4 id="页表"&gt;页表&lt;/h4&gt;
-&lt;p&gt;假设有一个&lt;code&gt;uint64_t table[512]&lt;/code&gt;,通过index，数组返回一个值。页表原理类似，MMU拿到一个虚拟地址，从里面找到几个bit当作index，从页表去查数组，得到结果。如果一级数组来覆盖整个48-bit地址空间，需要2^48，不现实。&lt;/p&gt;
-&lt;p&gt;所以需要用到&lt;strong&gt;多级数组&lt;/strong&gt;。4KB garanule是一个四维数组查找：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;table_L0[i0] -&amp;gt; 指向table_L1&lt;/li&gt;
-&lt;li&gt;table_L1[i1] -&amp;gt; 指向table_L2&lt;/li&gt;
-&lt;li&gt;table_L2[i2] -&amp;gt; 指向table_L3&lt;/li&gt;
-&lt;li&gt;table_L3[i3] -&amp;gt; 最终的物理页地址&lt;/li&gt;
-&lt;/ul&gt;
-&lt;!-- raw HTML omitted --&gt;
-&lt;p&gt;1.4kb粒度意味着每一张页表的大小最多只能是4kb（4096字节）。
-2.ARM64是64位系统，所以页表的每一个条目（指向下一级表的指针）必须是64bit（8字节）&lt;/p&gt;
-&lt;p&gt;一页最多只能寸512个条目：4096/8=512&lt;/p&gt;
-&lt;p&gt;索引需要9bit（2^9=512）&lt;/p&gt;
-&lt;p&gt;9(L1) + 9 (L2) + 9(L3) + 9(L4) +12(Offset) = 48bit&lt;/p&gt;
-&lt;p&gt;为什么是四级页表：
-三级页表为39bit,容量只有2^39=512G，这远远不够用。
-四级页表为48bit，容量有2^48=256TB。&lt;/p&gt;
-&lt;!-- raw HTML omitted --&gt;
-&lt;details open style="
-border: 1px solid #448aff;
-border-left: 5px solid #448aff;
-background-color: #f8f9fa;
-border-radius: 4px;
-margin: 1.5em 0;
-padding: 0;
-overflow: hidden;"&gt;
-&lt;summary style="
-background-color: #448aff1a; /* 10% 透明度背景 */
-padding: 10px 15px;
-font-weight: bold;
-cursor: pointer;
-color: #448aff;
-outline: none;
-list-style: none;"&gt;
-&lt;span style="margin-right: 5px;"&gt;💡&lt;/span&gt; 核心推导：为什么是 48-bit &amp;amp; 4级页表？
-&lt;/summary&gt;
-&lt;div style="padding: 15px; background: #fff;"&gt;
-&lt;p&gt;&lt;strong&gt;1. 基础限制&lt;/strong&gt;&lt;/p&gt;</description></item></channel></rss>
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;哈希表容量越大，输出相同的可能性就越低，通过&lt;em&gt;扩容哈希表&lt;/em&gt;可以减少&lt;em&gt;哈希冲突&lt;/em&gt;&lt;/p&gt;</description></item></channel></rss>

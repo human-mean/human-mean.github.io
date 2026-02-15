@@ -29,7 +29,24 @@ EL0 的用户程序不能直接操作硬件，必须通过 EL1 内核。EL1 的�
 这两个维度可以组合出四组情况，一共有四个入口，所以4组 * 4入口= 16入口，异常向量表有16个入口。
 vector.S
 /* ---------------------------- 第1组：当前EL,SP_EL0 ---------------------------- */ .balign 128 //0X00 - Synchronous b . .balign 128 //0x080 - IRQ b . .balign 128 //0x100 - FIQ b . .balign 128 //0x180 - Serror b . /* ---------------------------- 第2组：当前EL,SP_ELx ---------------------------- */ .balign 128 //0x200 - Synchronous b . .balign 128 //0x280 - IRQ b . .balign 128 //0x300 - FIQ b . .balign 128 //0x380 - Serror b . /* ---------------------------- 第2组：更低级EL，AArch64 ---------------------------- */ .balign 128 //0x400 - Synchronous b . .balign 128 //0x480 - IRQ b . .balign 128 //0x500 - FIQ b . .balign 128 //0x580 - Serror b . /* ---------------------------- 第4组：更低级EL,AArch32 ---------------------------- */ .balign 128 //0x600 - Synchronous b . .balign 128 //0x680 - IRQ b . .balign 128 //0x700 - FIQ b . .balign 128 //0x780 - Serror b . start.S
-...</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 3.实现异常向量表" href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8/></a></article><article class=post-entry><header class=entry-header><h2 class=entry-hint-parent>NerdRTOS 定时器设计文档</h2></header><div class=entry-content><p>NerdRTOS 定时器子系统设计文档 1. 概述 NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 Tickless 模式（动态时钟），以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。
+...</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 3.实现异常向量表" href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/3.%E5%AE%9E%E7%8E%B0%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8/></a></article><article class=post-entry><header class=entry-header><h2 class=entry-hint-parent>4.恒等映射MMU</h2></header><div class=entry-content><p>📋 一些基础概念
+Stage 1:将虚拟地址 (VA) 转换为物理地址 (PA)（在非虚拟化环境下）或者转换为中间物理地址 (IPA)（在虚拟化环境下）。它主要受 OS 控制，用来做进程隔离。
+Stage 2：将 IPA 转换为真正的 物理地址 (PA)。
+为什么需要MMU？ 裸机代码中CPU发送的地址直接发送到物理内存。但存在几个问题：
+所有代码都能访问所有地址，没有保护 若跑多个Guest OS,地址会存在冲突 没法控制某段内存是 cacheable 还是 device 类型 MMU就是在CPU和物理内存中充当了翻译：CPU发送虚拟地址（VA），MMU通过查表翻译成物理地址（PA），同时附带权限和属性的信息。MMU查的这个表就是页表。
+恒等映射： 恒等映射即虚拟地址=物理地址
+先从恒等映射开始是因为：
+从 BootLoader/BIOS 跳转到操作系统(如 Linux 内核)入口时,MMU 是关闭的。关闭了MMU 意味着不能利用高速缓存的性能。 MMU 关闭: 所有内存访问都是 Non-cacheable,每次访问主存 ~100+ cycles。 MMU 开启: 页表标记内存为 Cacheable,Cache 命中 ~3-5 cycles。 因此,我们在初始化的某个阶段需要把 MMU 打开并且使能数据高速缓存,以获得更高的性能。
+但是MMU开启的瞬间，CPU发送的所有指令都会被翻译。如果VA≠PA，PC指向的地址会指向错误位置。这时候恒等映射就派上用场了，确保开启前后代码能正常运行
+页表 假设有一个uint64_t table[512],通过index，数组返回一个值。页表原理类似，MMU拿到一个虚拟地址，从里面找到几个bit当作index，从页表去查数组，得到结果。如果一级数组来覆盖整个48-bit地址空间，需要2^48，不现实。
+所以需要用到多级数组。4KB garanule是一个四维数组查找：
+table_L0[i0] -> 指向table_L1 table_L1[i1] -> 指向table_L2 table_L2[i2] -> 指向table_L3 table_L3[i3] -> 最终的物理页地址 为什么是 48-bit & 4级页表？ 1. 基础限制
+...</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>3 min</span></footer><a class=entry-link aria-label="post link to 4.恒等映射MMU" href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/4.%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84mmu/></a></article><article class=post-entry><header class=entry-header><h2 class=entry-hint-parent>5.GIC中断</h2></header><div class=entry-content><p>什么是GIC GIC(Generic Interrupt Controller)即通用中断控制器。
+GIC负责接受来自外设或者软件的中断信号，进行优先级排序，将其分发给处理器核心（PE）。
+GIC使用中断ID来判断中断源：
+SGI:ID 0-15。软件生成的中断，通常用于核间通信（IPI）。 PPI:ID 16-31。私有外设中断，特定用于某个核心。 SPI:ID 32-1019。共享外设中断，可以路由给任意核心和一组核心。 LPI:ID 8192及以上。GICv3新增的，基于消息的中断，主要用于PCLe 中断在其生命周期中会处于以下几种状态 ：
+Inactive (非活动): 中断未发生。 Pending (挂起): 中断已发生，等待核心处理。 Active (活动): 核心已确认中断，正在处理中。 Active and Pending: 核心正在处理该中断，但同源的新中断又发生了。 注意：LPI 没有 Active 状态，只有 Pending 或 Inactive。 从外设到CPU的流水线 GICv3中，三个组件构成了中断从生产到被CPU处理的流水线：
+Distributor(全局分发器):根据 GICD_IROUTERn 寄存器配置的亲和性，将 SPI 路由到特定的目标 PE。在多个挂起的 SPI 中，选出优先级最高的 SPI，并将其挂起状态转发给对应的 Redistributor。 Redistributor（本地重分发器）：第二级（聚合）仲裁，接收来自 Distributor 的最高优先级 SPI，将其与本地挂起的最高优先级 PPI、SGI 和 LPI 进行综合比较，选出该 PE 视角下的绝对最高优先级中断，并将其发往 CPU Interface。 CPU Interface (CPU 接口)：GIC 与 PE 核心内部流水线交互的直接物理/逻辑接口。 阅读IHI0069H_b_gic_architecture_specification Distributor GICD_CTRL: GICD_CTRL是Distributor的控制寄存器。</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 5.GIC中断" href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/5.gic%E4%B8%AD%E6%96%AD/></a></article><article class=post-entry><header class=entry-header><h2 class=entry-hint-parent>NerdRTOS 定时器设计文档</h2></header><div class=entry-content><p>NerdRTOS 定时器子系统设计文档 1. 概述 NerdRTOS 的定时器子系统旨在为内核及应用程序提供精确的时间管理服务。该系统设计了两种工作模式——**Tick 模式（传统节拍）**与 Tickless 模式（动态时钟），以适应从资源受限的微控制器到对功耗敏感的现代 SoC 等不同应用场景。
 系统的核心不仅仅是简单的链表管理，而是采用了**红黑树（Red-Black Tree）**作为定时器容器，显著提升了在大量定时器并发场景下的插入与查找效率。
 2. 核心数据结构 定时器子系统的设计围绕 nd_timer_t 结构体展开，采用了非侵入式的节点设计，直接嵌入内核的通用数据结构。
 2.1 定时器控制块 (nd_timer_t) 定义于 include/nd_def.h，该结构体包含以下关键成员：
@@ -46,19 +63,7 @@ index = hash(key) % capacity
 因为哈希函数可能算出很大的数，但数组下标是有限的。取模可以把任意大的数压缩到 0 到 capacity-1 的范围内。
 哈希冲突与扩容 哈希函数的作用是将所有 key 构成的输入空间映射到数组所有索引构成的输出空间，而输入空间往往远大于输出空间。因此理论上一定存在多个输入对应相同输出的情况。
 比如：
-7 % 10 = 7 17 % 10 = 7 哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 哈希表" href=https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/></a></article><article class=post-entry><header class=entry-header><h2 class=entry-hint-parent>恒等映射MMU</h2></header><div class=entry-content><p>为什么需要MMU？ 裸机代码中CPU发送的地址直接发送到物理内存。但存在几个问题：
-所有代码都能访问所有地址，没有保护。 若跑多个Guest OS,地址会存在冲突。 没法控制某段内存是 cacheable 还是 device 类型 MMU就是在CPU和物理内存中充当了翻译：CPU发送虚拟地址（VA），MMU通过查表翻译成物理地址（PA），同时附带权限和属性的信息。MMU查的这个表就是页表。
-恒等映射： 恒等映射即虚拟地址=物理地址
-先从恒等映射开始是因为：
-MMU 启用前后，PC 指针指向的地址必须在 MMU 启用后仍然有效，不然读取不到下一条指令。 代码段、栈、串口都用恒等映射，逻辑简单，容易调试。 页表 假设有一个uint64_t table[512],通过index，数组返回一个值。页表原理类似，MMU拿到一个虚拟地址，从里面找到几个bit当作index，从页表去查数组，得到结果。如果一级数组来覆盖整个48-bit地址空间，需要2^48，不现实。
-所以需要用到多级数组。4KB garanule是一个四维数组查找：
-table_L0[i0] -> 指向table_L1 table_L1[i1] -> 指向table_L2 table_L2[i2] -> 指向table_L3 table_L3[i3] -> 最终的物理页地址 1.4kb粒度意味着每一张页表的大小最多只能是4kb（4096字节）。 2.ARM64是64位系统，所以页表的每一个条目（指向下一级表的指针）必须是64bit（8字节）
-一页最多只能寸512个条目：4096/8=512
-索引需要9bit（2^9=512）
-9(L1) + 9 (L2) + 9(L3) + 9(L4) +12(Offset) = 48bit
-为什么是四级页表： 三级页表为39bit,容量只有2^39=512G，这远远不够用。 四级页表为48bit，容量有2^48=256TB。
-💡 核心推导：为什么是 48-bit & 4级页表？ 1. 基础限制
-...</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 恒等映射MMU" href=https://human-mean.github.io/posts/arm64-hypervisor%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/4.%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84mmu/></a></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
+7 % 10 = 7 17 % 10 = 7 哈希表容量越大，输出相同的可能性就越低，通过扩容哈希表可以减少哈希冲突</p></div><footer class=entry-footer><span title='2026-02-03 00:00:00 +0000 UTC'>February 3, 2026</span>&nbsp;·&nbsp;<span>1 min</span></footer><a class=entry-link aria-label="post link to 哈希表" href=https://human-mean.github.io/posts/c%E8%AF%AD%E8%A8%80/%E5%93%88%E5%B8%8C%E8%A1%A8/></a></article></main><footer class=footer><span>&copy; 2026 <a href=https://human-mean.github.io/>嵌入式学习笔记</a></span> ·
 <span>Powered by
 <a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
 <a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg>
